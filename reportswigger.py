@@ -1,20 +1,14 @@
 #!/usr/bin/env python3
 
-import sys
 import requests
+import argparse
 from bs4 import BeautifulSoup, Tag
 
-def usage():
-    print("Usage: python3 generate_portswigger_labs_table.py <SessionId> <Authenticated_UserVerificationId> <output file>")
-    print("The arguments are the respective cookies in your browser when you are authenticated.")
-
-def get_all_labs_html_from_portswigger():
+def get_all_labs_html_from_portswigger(sessionId, verificationId):
     print("Get all labs in html from portswigger...")
-    sessionId = sys.argv[1]
-    authenticated_UserVerificationId = sys.argv[2]
     cookies = {
         'SessionId': sessionId,
-        'Authenticated_UserVerificationId': authenticated_UserVerificationId,
+        'Authenticated_UserVerificationId': verificationId,
     }
     return requests.get(portswigger_url + '/web-security/all-labs', cookies=cookies)
 
@@ -52,14 +46,18 @@ def get_stats(labs):
         total_nb_labs += nb_labs
         stats[category] = (nb_solved, nb_labs)
     stats["total"] = (total_solved, total_nb_labs)
+    if total_solved == 0:
+        answer = input("You solved 0 labs, is that normal? (y/n)\n")
+        if answer.lower() not in ["y", "yes"]:
+            raise Exception("Something probably went wrong with your token\n")
     return stats
 
 
 def render_markdown_one_table_by_category(labs):
     print("Render markdown...")
     stats = get_stats(labs)
-    content = "# PORTSWIGGER LABS"
-    content += f" ({stats["total"][0]}/{stats["total"][1]})\n\n"
+    content = "# PORTSWIGGER LABS "
+    content += f"({stats["total"][0]}/{stats["total"][1]})\n\n"
     for category, labs_of_category in labs.items():
         content += f"## {category}"
         content += f" ({stats[category][0]}/{stats[category][1]})\n\n"
@@ -82,17 +80,19 @@ def write_content_to_file(content, filename):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 4:
-        usage()
-        exit(1)
+    parser = argparse.ArgumentParser(description="Generate Portswigger labs table")
+    parser.add_argument('-o', '--output', help="output file", default="portswigger.md")
+    args = parser.parse_args()
+    output_filename = args.output
     portswigger_url = "https://portswigger.net"
-    output_filename = sys.argv[3]
+    sessionId = input("Enter your SessionId:\n")
+    verificationId = input("Enter your Authenticated_UserVerificationId:\n")
     try:
-        response = get_all_labs_html_from_portswigger()
+        response = get_all_labs_html_from_portswigger(sessionId, verificationId)
         soup = BeautifulSoup(response.text, "html.parser")
         labs = get_labs_dict_from_soup(soup)
         markdown = render_markdown_one_table_by_category(labs)
-        write_content_to_file(markdown, sys.argv[3])
+        write_content_to_file(markdown, output_filename)
     except Exception as e:
         print(e)
-        usage()
+        parser.print_help()
