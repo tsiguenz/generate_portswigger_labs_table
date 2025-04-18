@@ -40,21 +40,6 @@ def get_labs_dict_from_soup(soup):
     return labs
 
 
-# def render_markdown_one_table(labs):
-#     print("Render markdown...")
-#     content = "# PORTSWIGGER LABS\n\n"
-#     content += "|Category|Name|Level|Status|\n"
-#     content += "|--------|----|-----|------|\n"
-#     for category, labs_of_category in labs.items():
-#         for lab in labs_of_category:
-#             url = lab[1]
-#             name = f"[{lab[0]}]({url})"
-#             level = lab[2]
-#             status = "✅" if lab[3] else "❌"
-#             content += f"|{category}|{name}|{level}|{status}|\n"
-#     return content
-
-
 def get_stats(labs):
     stats = {}
     total_solved = 0
